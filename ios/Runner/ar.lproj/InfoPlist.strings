@@ -1,0 +1,12 @@
+CFBundleDisplayName = "صناعيتي";
+CameraPermission = "الكاميرا الخاصة بك مطلوبة لالتقاط صورة";
+NSLocationAlwaysAndWhenInUseUsageDescription = "يطلب سيارتي الوصول إلى معلومات موقع المستخدم حينما يكون التطبيق مفتوح.";
+NSCalendarsUsageDescription = "صناعيتي ترغب في الوصول إلى التقويم الخاص بك";
+NSContactsUsageDescription = "يريد صناعيتي الوصول إلى جهات الاتصال الخاصة بك";
+NSPhotoLibraryUsageDescription = "من أجل مشاركة صورة مع الآخرين أو استخدام صورة كملف شخصي";
+NSBluetoothPeripheralUsageDescription = "صناعيتي يحتاج الي إستخدام البلوتوث.";
+NSAppleMusicUsageDescription = "صناعيتي يريد استخدام الموسيقي";
+NSSpeechRecognitionUsageDescription = "صناعيتي يستخدم التعرف على الكلام.";
+NSMotionUsageDescription = "صناعيتي يطلب الإذن للوصول إلى بيانات حدث الكشف عن السقوط.";
+NSSiriUsageDescription = "استخدم Siri للسماح للمستخدم بالتواصل مع هذا التطبيق";
+NSMicrophoneUsageDescription = "صناعيتي يحتاج إلى الوصول إلى الميكروفون لتسجيل رساله صوتيه";

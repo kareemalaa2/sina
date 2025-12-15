@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "698098847846",
+    "project_id": "sinaeiati-e9e28",
+    "storage_bucket": "sinaeiati-e9e28.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:698098847846:android:54e86792a97803adb49da7",
+        "android_client_info": {
+          "package_name": "com.sinaeiati.www"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnn0oaeuojaUR-Nd_AePiDceSqNb4rO1k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,12 @@
+CFBundleDisplayName = "Sinaeiati";
+CameraPermission = "Your camera is required to capture an image";
+NSLocationAlwaysAndWhenInUseUsageDescription = "Sinaeiati is requesting access to the user’s location information when the app is opened.";
+NSCalendarsUsageDescription = "Sinaeiati would like to access your calender";
+NSContactsUsageDescription = "Sinaeiati would like to access your contacts";
+NSPhotoLibraryUsageDescription = "In order share a photo with others or use a photo as a profile.";
+NSBluetoothPeripheralUsageDescription = "Sinaeiati bluetooth use.";
+NSAppleMusicUsageDescription = "Sinaeiati music use";
+NSSpeechRecognitionUsageDescription = "Sinaeiati use speech recognition.";
+NSMotionUsageDescription = "Sinaeiati requesting permission to access fall detection event data.";
+NSSiriUsageDescription = "Use Siri to allow user communicate with this app";
+NSMicrophoneUsageDescription = "Sinaeiati needs microphone access to record a voice message";

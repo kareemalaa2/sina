@@ -1,0 +1,2 @@
+/Users/ebtkarweb/Downloads/mycar-mobile/android/app/.cxx/Debug/554h2m3y/armeabi-v7a/CMakeFiles/edit_cache.dir
+/Users/ebtkarweb/Downloads/mycar-mobile/android/app/.cxx/Debug/554h2m3y/armeabi-v7a/CMakeFiles/rebuild_cache.dir

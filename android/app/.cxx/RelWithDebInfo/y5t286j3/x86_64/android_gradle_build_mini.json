@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "/Users/ebtkarweb/Development/flutter/packages/flutter_tools/gradle/src/main/groovy/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/Users/ebtkarweb/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/Users/ebtkarweb/Downloads/mycar-mobile/android/app/.cxx/RelWithDebInfo/y5t286j3/x86_64",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/Users/ebtkarweb/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/Users/ebtkarweb/Downloads/mycar-mobile/android/app/.cxx/RelWithDebInfo/y5t286j3/x86_64",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {}
+}

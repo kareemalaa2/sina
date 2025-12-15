@@ -1,0 +1,37 @@
+version: 1.0
+
+workflows:
+  flutter-ios:
+    name: Flutter iOS Build & Archive
+    platform: ios
+    environment:
+      vars:
+        FLUTTER_CHANNEL: stable
+        FLUTTER_VERSION: "3.22.1" # Optional, lock to a specific version
+      xcode: latest
+    scripts:
+      - name: Post-clone (Install Flutter SDK, pods, etc.)
+        script: ios/ci_scripts/ci_post_clone.sh
+      - name: Pre-Xcode Build (flutter build ios, pod install)
+        script: ios/ci_scripts/ci_pre_xcodebuild.sh
+      # Optional:
+      # - name: Post-Xcode Build
+      #   script: ios/ci_scripts/ci_post_xcodebuild.sh
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/**/*.dSYM
+      - build/ios/**/*.xcarchive
+    distribution:
+      # Uncomment ONE of the following:
+      # method: app-store
+      # method: ad-hoc
+      # method: development
+      # method: enterprise
+      method: app-store
+    post_actions:
+      email:
+        recipients:
+          - aladdin16659@gmail.com
+        on:
+          - success
+          - failure
