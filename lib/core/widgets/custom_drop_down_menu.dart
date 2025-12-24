@@ -10,6 +10,7 @@ class CustomDropDownMenu<T> extends StatelessWidget {
     this.onSelected,
     this.initialSelection,
     this.controller,
+    //
   });
 
   final String hintText;
