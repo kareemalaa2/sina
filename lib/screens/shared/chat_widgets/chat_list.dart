@@ -35,19 +35,17 @@ class _ChatListState extends State<ChatList> with SingleTickerProviderStateMixin
   int total = 0;
   int page = 0;
   bool loading = false;
-  bool loadingMessages = false; // 🔥 حالة تحميل الرسائل
+  bool loadingMessages = false;
   
   Map<String, DateTime> lastInteractionTimes = {};
   Set<String> registeredListeners = {};
   
-  // 🔥 للـ shimmer animation
   late AnimationController _shimmerController;
   late Animation<double> _shimmerAnimation;
-  Timer? _shimmerTimer; // 🔥 مؤقت الـ 7 ثواني
+  Timer? _shimmerTimer;
 
   @override
   void initState() {
-    // 🔥 إعداد الـ shimmer animation
     _shimmerController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -104,6 +102,7 @@ class _ChatListState extends State<ChatList> with SingleTickerProviderStateMixin
     }
   }
 
+  // 🚀 OPTIMIZED: Load last message without blocking
   Future<void> loadLastMessage(Chat chat) async {
     try {
       final resp = await ApiService.get(
@@ -117,9 +116,12 @@ class _ChatListState extends State<ChatList> with SingleTickerProviderStateMixin
       );
 
       if (resp.success && resp.data.isNotEmpty && mounted) {
-        setState(() {
-          chat.unread = ChatMessage.fromMap(resp.data[0]);
-        });
+        final chatIndex = chats.indexWhere((c) => c.id == chat.id);
+        if (chatIndex != -1) {
+          setState(() {
+            chats[chatIndex].unread = ChatMessage.fromMap(resp.data[0]);
+          });
+        }
       }
     } catch (e) {
       print('❌ Error loading last message for chat ${chat.id}: $e');
@@ -175,35 +177,35 @@ class _ChatListState extends State<ChatList> with SingleTickerProviderStateMixin
       }
     });
 
-auth.socket?.on("$chatId-message", (data) {
-  if (mounted) {
-    final chatIndex = chats.indexWhere((c) => c.id == chatId);
-    if (chatIndex != -1) {
-      setState(() {
-        ChatMessage msg = ChatMessage.fromMap(data);
-        
-        chats[chatIndex].unread = msg;
-        
-        // ✅ Always update interaction time for ANY message
-        lastInteractionTimes[chatId] = DateTime.now();
-        saveInteractionTimes();
-        
-        if (auth.user?.id != msg.sender.id) {
-          chats[chatIndex].unreadCount++;
+    auth.socket?.on("$chatId-message", (data) {
+      if (mounted) {
+        final chatIndex = chats.indexWhere((c) => c.id == chatId);
+        if (chatIndex != -1) {
+          setState(() {
+            ChatMessage msg = ChatMessage.fromMap(data);
+            
+            chats[chatIndex].unread = msg;
+            
+            lastInteractionTimes[chatId] = DateTime.now();
+            saveInteractionTimes();
+            
+            if (auth.user?.id != msg.sender.id) {
+              chats[chatIndex].unreadCount++;
+            }
+            chats.sort((a, b) {
+              final aTime = lastInteractionTimes[a.id] ?? 
+                            a.unread?.createdAt ?? 
+                            a.createdAt;
+              final bTime = lastInteractionTimes[b.id] ?? 
+                            b.unread?.createdAt ?? 
+                            b.createdAt;
+              return bTime.compareTo(aTime);
+            });
+          });
         }
-        chats.sort((a, b) {
-          final aTime = lastInteractionTimes[a.id] ?? 
-                        a.unread?.createdAt ?? 
-                        a.createdAt;
-          final bTime = lastInteractionTimes[b.id] ?? 
-                        b.unread?.createdAt ?? 
-                        b.createdAt;
-          return bTime.compareTo(aTime);
-        });
-      });
-    }
-  }
-});
+      }
+    });
+
     auth.socket?.on("${chat.order.id}-order", (data) {
       Order order = Order.fromMap(data);
       if (order.serviceProviderId != auth.user?.id &&
@@ -218,88 +220,106 @@ auth.socket?.on("$chatId-message", (data) {
       }
     });
   }
-loadData({bool more = false}) async {
-  // ✅ فقط أول تحميل أو Refresh يظهر الشيمر
-  final bool showShimmer = !more;
 
-  setState(() {
-    if (more) {
-      page++;
-      loading = true; // pagination indicator فقط
+  // 🚀 SOLUTION 3: Show chats immediately, load messages in parallel
+  loadData({bool more = false}) async {
+    final bool showShimmer = !more;
+
+    setState(() {
+      if (more) {
+        page++;
+        loading = true;
+      } else {
+        page = 0;
+        chats.clear();
+        registeredListeners.clear();
+        loading = true;
+        if (showShimmer) {
+          loadingMessages = true;
+          // Start shimmer timer (max 3 seconds for better UX)
+          _shimmerTimer?.cancel();
+          _shimmerTimer = Timer(const Duration(seconds: 3), () {
+            if (mounted) {
+              setState(() {
+                loadingMessages = false;
+              });
+            }
+          });
+        }
+      }
+    });
+
+    // 1️⃣ Load chats list
+    final resp = await ApiService.get(
+      "/chats",
+      queryParams: {
+        "limit": 10,
+        "skip": page * 10,
+        "status": widget.status,
+      },
+      token: auth.token,
+    );
+
+    if (resp.success && mounted) {
+      final newChats = List.generate(
+        resp.data.length,
+        (i) => Chat.fromMap(resp.data[i]),
+      );
+
+      // 2️⃣ Show chats IMMEDIATELY (without waiting for messages)
+      setState(() {
+        chats.addAll(newChats);
+        total = resp.total;
+        loading = false;
+        // Stop shimmer after showing chats
+        if (showShimmer) {
+          _shimmerTimer?.cancel();
+          loadingMessages = false;
+        }
+      });
+
+      // 3️⃣ Load all messages in PARALLEL (not sequential!)
+      final messageFutures = newChats.map((chat) {
+        // Register socket listeners immediately
+        registerSocketListeners(chat);
+        // Load message in background
+        return loadLastMessage(chat);
+      }).toList();
+
+      // Wait for all messages in parallel
+      await Future.wait(messageFutures);
+
+      // 4️⃣ Sort after all messages loaded
+      if (mounted) {
+        setState(() {
+          chats.sort((a, b) {
+            final aTime = lastInteractionTimes[a.id] ??
+                a.unread?.createdAt ??
+                a.createdAt;
+            final bTime = lastInteractionTimes[b.id] ??
+                b.unread?.createdAt ??
+                b.createdAt;
+            return bTime.compareTo(aTime);
+          });
+        });
+      }
     } else {
-      page = 0;
-      chats.clear();
-      registeredListeners.clear();
-      loading = true;
-      if (showShimmer) {
-        loadingMessages = true; // ✅ الشيمر يظهر فقط أول مرة أو refresh
-        _shimmerTimer?.cancel();
-        _shimmerTimer = Timer(const Duration(seconds: 7), () {
-          if (mounted) {
-            setState(() {
-              loadingMessages = false;
-            });
+      if (mounted) {
+        setState(() {
+          loading = false;
+          if (showShimmer) {
+            _shimmerTimer?.cancel();
+            loadingMessages = false;
           }
         });
       }
     }
-  });
-
-  final resp = await ApiService.get(
-    "/chats",
-    queryParams: {
-      "limit": 10,
-      "skip": page * 10,
-      "status": widget.status,
-    },
-    token: auth.token,
-  );
-
-  if (resp.success && mounted) {
-    final newChats = List.generate(
-      resp.data.length,
-      (i) => Chat.fromMap(resp.data[i]),
-    );
-
-    setState(() {
-      chats.addAll(newChats);
-      total = resp.total;
-    });
-
-    for (var chat in newChats) {
-      await loadLastMessage(chat);
-      registerSocketListeners(chat);
-    }
-
-    if (mounted) {
-      setState(() {
-        chats.sort((a, b) {
-          final aTime = lastInteractionTimes[a.id] ??
-              a.unread?.createdAt ??
-              a.createdAt;
-          final bTime = lastInteractionTimes[b.id] ??
-              b.unread?.createdAt ??
-              b.createdAt;
-          return bTime.compareTo(aTime);
-        });
-        loading = false;
-        if (showShimmer) loadingMessages = false; // ✅ نوقف الشيمر بعد ما يخلص
-      });
-    }
-  } else {
-    if (mounted) {
-      setState(() {
-        loading = false;
-        if (showShimmer) loadingMessages = false;
-      });
-    }
   }
-}
 
   @override
   void dispose() {
-    _shimmerController.dispose(); // 🔥 تنظيف الـ animation
-    _shimmerTimer?.cancel(); // 🔥 إلغاء المؤقت
+    _shimmerController.dispose();
+    _shimmerTimer?.cancel();
     scrollController.removeListener(listener);
     for (var chat in chats) {
       auth.socket?.off(chat.userId(auth.user?.id ?? ""));
@@ -310,7 +330,6 @@ loadData({bool more = false}) async {
     super.dispose();
   }
 
-  // 🔥 بناء shimmer item
   Widget _buildShimmerItem() {
     return AnimatedBuilder(
       animation: _shimmerAnimation,
@@ -319,7 +338,6 @@ loadData({bool more = false}) async {
           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
           child: Row(
             children: [
-              // Avatar shimmer
               Container(
                 width: 50,
                 height: 50,
@@ -341,7 +359,6 @@ loadData({bool more = false}) async {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Name shimmer
                     Container(
                       height: 16,
                       width: double.infinity,
@@ -359,7 +376,6 @@ loadData({bool more = false}) async {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    // Message shimmer
                     Container(
                       height: 14,
                       width: double.infinity * 0.7,
@@ -380,7 +396,6 @@ loadData({bool more = false}) async {
                 ),
               ),
               const SizedBox(width: 12),
-              // Time shimmer
               Container(
                 height: 12,
                 width: 60,
@@ -414,7 +429,6 @@ loadData({bool more = false}) async {
       },
       child: Stack(
         children: [
-          // 🔥 القائمة الأصلية (مخفية أثناء الـ shimmer)
           Opacity(
             opacity: loadingMessages ? 0 : 1,
             child: ListView.builder(
@@ -477,7 +491,6 @@ loadData({bool more = false}) async {
             ),
           ),
           
-          // 🔥 Shimmer overlay (يظهر فوق القائمة لمدة 7 ثواني)
           if (loadingMessages)
             Container(
               color: Theme.of(context).scaffoldBackgroundColor,
